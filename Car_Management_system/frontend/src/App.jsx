@@ -1535,7 +1535,7 @@ function SettingsPage({ user, setUser, onLogout }) {
 
   const deleteAccount = async () => {
     try {
-      await fetch('/api/auth/delete-account/', { method: 'DELETE', headers: { Authorization: `Token ${getSavedToken()}` } });
+      await authAPI.deleteAccount();
       clearAuth();
       onLogout();
     } catch {}
@@ -1922,10 +1922,7 @@ function AdminOverviewTab({ stats, users, cars, services }) {
 function AdminUsersTab({ users, onRefresh }) {
   const toggleUser = async (id) => {
     try {
-      await fetch(`/api/auth/users/${id}/toggle-status/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Token ${getSavedToken()}` },
-      });
+      await authAPI.toggleUserStatus(id);
       onRefresh();
     } catch {}
   };
@@ -1933,14 +1930,7 @@ function AdminUsersTab({ users, onRefresh }) {
   const deleteUser = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user account?")) return;
     try {
-      const res = await fetch(`/api/auth/users/${id}/delete/`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Token ${getSavedToken()}` },
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete user.");
-      }
+      await authAPI.deleteUserAdmin(id);
       onRefresh();
     } catch (err) { alert(err.message); }
   };
@@ -1949,10 +1939,7 @@ function AdminUsersTab({ users, onRefresh }) {
     if (users.length === 0) return;
     if (!window.confirm(`Are you sure you want to delete ALL ${users.length} registered user accounts?`)) return;
     try {
-      await Promise.all(users.map(u => fetch(`/api/auth/users/${u.id}/delete/`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Token ${getSavedToken()}` },
-      })));
+      await Promise.all(users.map(u => authAPI.deleteUserAdmin(u.id)));
       onRefresh();
     } catch (err) { alert(err.message); }
   };

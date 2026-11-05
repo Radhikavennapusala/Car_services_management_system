@@ -24,5 +24,4 @@ class Car(models.Model):
         return f"{self.year} {self.make} {self.model} ({self.plate_number})"
 
     class Meta:
-        managed = False
         ordering = ['-created_at']

@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
 //  api.js  —  All Django REST API calls for CSMS Frontend
-//  Uses relative paths — Vite proxy forwards /api/* → Django :8000
+//  Uses VITE_API_BASE_URL in production, falls back to /api in local dev
 // ─────────────────────────────────────────────────────────────
 
-const BASE = '/api';
+const BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 function getToken() {
   return localStorage.getItem('csms_token') || sessionStorage.getItem('csms_token');
@@ -37,13 +37,16 @@ async function request(method, url, body) {
 
 // ── Auth ──────────────────────────────────────────────────────
 export const authAPI = {
-  login:          (username, password) => request('POST', `${BASE}/auth/login/`,           { username, password }),
-  register:       (payload)            => request('POST', `${BASE}/auth/register/`,        payload),
-  logout:         ()                   => request('POST', `${BASE}/auth/logout/`),
-  me:             ()                   => request('GET',  `${BASE}/auth/me/`),
-  changePassword: (payload)            => request('POST', `${BASE}/auth/change-password/`, payload),
-  updateProfile:  (payload)            => request('PATCH', `${BASE}/auth/profile/update/`, payload),
-  listUsers:      ()                   => request('GET',  `${BASE}/auth/users/`),
+  login:            (username, password) => request('POST',   `${BASE}/auth/login/`,           { username, password }),
+  register:         (payload)            => request('POST',   `${BASE}/auth/register/`,        payload),
+  logout:           ()                   => request('POST',   `${BASE}/auth/logout/`),
+  me:               ()                   => request('GET',    `${BASE}/auth/me/`),
+  changePassword:   (payload)            => request('POST',   `${BASE}/auth/change-password/`, payload),
+  updateProfile:    (payload)            => request('PATCH',  `${BASE}/auth/profile/update/`, payload),
+  deleteAccount:    ()                   => request('DELETE', `${BASE}/auth/delete-account/`),
+  listUsers:        ()                   => request('GET',    `${BASE}/auth/users/`),
+  toggleUserStatus: (id)                 => request('POST',   `${BASE}/auth/users/${id}/toggle-status/`),
+  deleteUserAdmin:  (id)                 => request('DELETE', `${BASE}/auth/users/${id}/delete/`),
 };
 
 // ── Cars / Vehicles ───────────────────────────────────────────
@@ -58,7 +61,6 @@ export const carsAPI = {
 export const servicesAPI = {
   list:         (params = '') => request('GET',  `${BASE}/services/${params}`),
   create:       (data)        => request('POST', `${BASE}/services/`, data),
-  // Admin: update status, cost, pickup via dedicated endpoint
   updateStatus: (id, data)    => request('POST', `${BASE}/services/${id}/update-status/`, data),
 };
 
