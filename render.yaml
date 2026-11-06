@@ -4,7 +4,7 @@ services:
     name: csms-backend
     runtime: python
     rootDir: Car_Management_system/backend
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py create_admin"
     startCommand: "gunicorn car_management.wsgi:application"
     plan: free
     autoDeploy: true
