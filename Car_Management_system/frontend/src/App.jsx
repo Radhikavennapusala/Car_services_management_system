@@ -136,7 +136,17 @@ export default function App() {
         setUser(u);
         localStorage.setItem(USER_KEY, JSON.stringify(u));
         setPage(u.is_staff ? 'admin' : 'dashboard');
-      }).catch(() => { clearAuth(); setUser(null); });
+      }).catch(() => {
+        // Token invalid or backend unreachable — go back to homepage
+        clearAuth();
+        setUser(null);
+        setPage('home');
+      });
+    } else if (!token) {
+      // No token at all — always show homepage
+      clearAuth();
+      setUser(null);
+      setPage('home');
     }
   }, []);
 
