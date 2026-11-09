@@ -154,14 +154,47 @@ def update_service_status(request, service_id):
                             f"Car Service Management System"
                         )
                     
-                    from_addr = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'noreply@csms.com'
-                    send_mail(subject, body, from_addr, [customer_email], fail_silently=False)
-                    email_status_msg = f" Email successfully sent to {customer_email}."
+                    import os
+                    email_sent = False
+                    resend_key = getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '')
+                    if resend_key:
+                        try:
+                            import urllib.request
+                            import json
+                            url = "https://api.resend.com/emails"
+                            headers = {
+                                "Authorization": f"Bearer {resend_key}",
+                                "Content-Type": "application/json"
+                            }
+                            data = {
+                                "from": "Car Service <onboarding@resend.dev>",
+                                "to": [customer_email],
+                                "subject": subject,
+                                "text": body,
+                            }
+                            req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
+                            with urllib.request.urlopen(req, timeout=10) as r:
+                                email_sent = True
+                                email_status_msg = f" Acceptance email successfully sent to {customer_email}!"
+                        except Exception as re_err:
+                            print(f"Resend attempt failed: {re_err}")
+
+                    if not email_sent:
+                        from_addr = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'noreply@csms.com'
+                        try:
+                            send_mail(subject, body, from_addr, [customer_email], fail_silently=False)
+                            email_status_msg = f" Email successfully sent to {customer_email}."
+                        except Exception as smtp_err:
+                            err_str = str(smtp_err)
+                            if "closed" in err_str.lower() or "timeout" in err_str.lower():
+                                email_status_msg = f" Service confirmed! (Outbound SMTP port 587 is blocked on Render free tier)."
+                            else:
+                                email_status_msg = f" Email notice: {err_str}"
                 else:
                     email_status_msg = " Email not sent because customer has no email address."
             except Exception as e:
-                email_status_msg = f" Email failed: {str(e)}"
-                print(f"Error sending email: {e}")
+                email_status_msg = f" Email note: {str(e)}"
+                print(f"Error handling email: {e}")
 
         return Response({'message': f'Service updated.{email_status_msg}', 'status': service.status})
     except Service.DoesNotExist:

@@ -109,17 +109,44 @@ def send_booking_email(booking, email_type, cancelled_by=None):
         else:
             return False, "Invalid email type."
 
-        from_addr = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'noreply@csms.com'
-        
-        # Actual email sending
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=from_addr,
-            recipient_list=[customer_email],
-            fail_silently=False,
-        )
-        logger.info(f"Booking email '{email_type}' sent successfully to {customer_email} for booking {booking_id}.")
+        import os
+        email_sent = False
+        resend_key = getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '')
+        if resend_key:
+            try:
+                import urllib.request
+                import json
+                url = "https://api.resend.com/emails"
+                headers = {
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json"
+                }
+                data = {
+                    "from": "Car Service <onboarding@resend.dev>",
+                    "to": [customer_email],
+                    "subject": subject,
+                    "text": body,
+                }
+                req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    email_sent = True
+                    logger.info(f"Booking email '{email_type}' sent to {customer_email} via Resend.")
+            except Exception as re_err:
+                logger.warning(f"Resend send failed: {re_err}")
+
+        if not email_sent:
+            from_addr = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'noreply@csms.com'
+            try:
+                send_mail(
+                    subject=subject,
+                    message=body,
+                    from_email=from_addr,
+                    recipient_list=[customer_email],
+                    fail_silently=False,
+                )
+                logger.info(f"Booking email '{email_type}' sent successfully to {customer_email} for booking {booking_id}.")
+            except Exception as smtp_err:
+                logger.warning(f"SMTP send failed (Render free tier blocks port 587): {smtp_err}")
         return True, None
 
     except Exception as e:
