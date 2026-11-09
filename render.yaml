@@ -35,6 +35,8 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
 
   # ── Frontend Static Site (React 19 + Vite 8) ──────────────────
   - type: web
