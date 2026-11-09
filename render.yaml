@@ -46,11 +46,7 @@ services:
     autoDeploy: true
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: csms-backend
-          envVarKey: RENDER_EXTERNAL_URL
-          value: "${RENDER_EXTERNAL_URL}/api"
+        value: "https://csms-backend.onrender.com/api"
     routes:
       - type: rewrite
         source: /*
