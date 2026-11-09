@@ -3,7 +3,7 @@
 //  Uses VITE_API_BASE_URL in production, falls back to /api in local dev
 // ─────────────────────────────────────────────────────────────
 
-const BASE = (import.meta.env.VITE_API_BASE_URL || 'https://csms-backend.onrender.com/api').replace(/\/+$/, '');
+const BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 function getToken() {
   return localStorage.getItem('csms_token') || sessionStorage.getItem('csms_token');
