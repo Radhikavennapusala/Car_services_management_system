@@ -23,3 +23,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f'ℹ️ Admin user "{username}" already exists. Skipping.'
             ))
+
