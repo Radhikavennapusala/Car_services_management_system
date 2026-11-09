@@ -51,6 +51,12 @@ services:
       - type: redirect
         source: /login
         destination: /
+      - type: redirect
+        source: /reset-password
+        destination: /
+      - type: redirect
+        source: /register
+        destination: /
       - type: rewrite
         source: /*
         destination: /index.html
