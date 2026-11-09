@@ -2168,11 +2168,14 @@ function AdminServiceRequestsTab({ services, onRefresh, setActiveTab }) {
     ? services
     : services.filter(s => s.status === filter);
 
-  const updateStatus = async (id, status, defaultCost) => {
+  const updateStatus = async (id, status, defaultCost, resendEmail = false) => {
     try {
       const payload = { status };
       if (defaultCost !== undefined && defaultCost > 0) {
         payload.cost = defaultCost;
+      }
+      if (resendEmail) {
+        payload.resend_email = true;
       }
       const res = await servicesAPI.updateStatus(id, payload);
       if (res && res.message) alert(res.message);
@@ -2274,23 +2277,53 @@ function AdminServiceRequestsTab({ services, onRefresh, setActiveTab }) {
                   <td>
                     {svc.status === 'pending' ? (
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn-sm green" onClick={() => updateStatus(svc.id, 'accepted', estTotal)}>✅ Accept</button>
-                        <button className="btn-sm red" onClick={() => updateStatus(svc.id, 'rejected')}>❌ Reject</button>
+                        <button
+                          className="btn-sm green"
+                          style={{ padding: '6px 12px', fontWeight: 'bold', cursor: 'pointer' }}
+                          onClick={() => updateStatus(svc.id, 'accepted', estTotal)}
+                        >
+                          ✅ Accept &amp; Send Mail
+                        </button>
+                        <button
+                          className="btn-sm red"
+                          style={{ padding: '6px 10px', cursor: 'pointer' }}
+                          onClick={() => updateStatus(svc.id, 'rejected')}
+                        >
+                          ❌ Reject
+                        </button>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
                         <span className={`status-badge ${svc.status}`}>
                           {svc.status === 'accepted' ? '✅ Accepted' : svc.status === 'in_progress' ? '🔧 In Progress' : svc.status === 'completed' ? '⚙️ Completed' : svc.status}
                         </span>
-                        {setActiveTab && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           <button
                             className="btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '3px 8px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', cursor: 'pointer' }}
-                            onClick={() => setActiveTab('service-update')}
+                            style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.3)', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={() => updateStatus(svc.id, 'accepted', estTotal, true)}
+                            title="Send acceptance confirmation email to user"
                           >
-                            Update Progress 🔄
+                            ✉️ Send Acceptance Mail
                           </button>
-                        )}
+                          <button
+                            className="btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'rgba(234, 179, 8, 0.15)', color: '#eab308', border: '1px solid rgba(234, 179, 8, 0.3)', cursor: 'pointer' }}
+                            onClick={() => updateStatus(svc.id, 'pending')}
+                            title="Reset back to pending"
+                          >
+                            ⏳ Make Pending
+                          </button>
+                          {setActiveTab && (
+                            <button
+                              className="btn-sm"
+                              style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', cursor: 'pointer' }}
+                              onClick={() => setActiveTab('service-update')}
+                            >
+                              Update Progress 🔄
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </td>

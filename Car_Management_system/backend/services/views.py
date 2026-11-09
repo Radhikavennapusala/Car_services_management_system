@@ -112,9 +112,10 @@ def update_service_status(request, service_id):
 
         service.save()
         
-        # Send email if status changed to rejected or accepted
+        # Send email if status changed to rejected or accepted (or forced via resend_email)
         email_status_msg = ""
-        if new_status in ['rejected', 'accepted'] and old_status != new_status:
+        resend = request.data.get('resend_email', False)
+        if new_status in ['rejected', 'accepted'] and (old_status != new_status or resend):
             try:
                 if service.requested_by and service.requested_by.email:
                     customer_name = service.requested_by.first_name or service.requested_by.username
