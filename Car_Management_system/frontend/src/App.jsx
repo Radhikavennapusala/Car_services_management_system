@@ -1809,7 +1809,7 @@ function AdminDashboard({ user, onLogout, setPage, darkMode, toggleTheme }) {
             {activeTab === 'overview' && <AdminOverviewTab stats={stats} users={nonAdminUsers} cars={cars} services={services} />}
             {activeTab === 'users' && <AdminUsersTab users={nonAdminUsers} onRefresh={loadData} />}
             {activeTab === 'vehicles' && <AdminVehiclesTab cars={cars} onRefresh={loadData} />}
-            {activeTab === 'service-requests' && <AdminServiceRequestsTab services={services} onRefresh={loadData} />}
+            {activeTab === 'service-requests' && <AdminServiceRequestsTab services={services} onRefresh={loadData} setActiveTab={setActiveTab} />}
             {activeTab === 'service-update' && <AdminServiceUpdateTab services={services} onRefresh={loadData} />}
           </>
         )}
@@ -2159,9 +2159,14 @@ function AdminVehiclesTab({ cars, onRefresh }) {
   );
 }
 
-// ── Admin: Service Requests Tab (Accept/Reject) ──────────────
-function AdminServiceRequestsTab({ services, onRefresh }) {
+// ── Admin: Service Requests Tab (Accept/Reject & All) ──────────────
+function AdminServiceRequestsTab({ services, onRefresh, setActiveTab }) {
+  const [filter, setFilter] = useState('all');
   const pending = services.filter(s => s.status === 'pending');
+
+  const displayedServices = filter === 'all'
+    ? services
+    : services.filter(s => s.status === filter);
 
   const updateStatus = async (id, status, defaultCost) => {
     try {
@@ -2177,12 +2182,47 @@ function AdminServiceRequestsTab({ services, onRefresh }) {
 
   return (
     <div className="admin-tab-content">
-      <h3>📋 Service Requests — Accept / Reject</h3>
-      <p className="tab-desc">{pending.length} pending review · Review and accept or reject incoming requests</p>
-      {pending.length === 0 ? (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h3 style={{ margin: 0 }}>📋 Service Requests Management</h3>
+          <p className="tab-desc" style={{ margin: '4px 0 0' }}>
+            {services.length} total request(s) · {pending.length} pending review
+          </p>
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        {[
+          { key: 'all', label: `All Requests (${services.length})` },
+          { key: 'pending', label: `⏳ Pending (${pending.length})` },
+          { key: 'accepted', label: `✅ Accepted (${services.filter(s => s.status === 'accepted').length})` },
+          { key: 'in_progress', label: `🔧 In Progress (${services.filter(s => s.status === 'in_progress').length})` },
+          { key: 'completed', label: `⚙️ Completed (${services.filter(s => s.status === 'completed').length})` },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            className={`btn-sm ${filter === tab.key ? 'active' : ''}`}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              border: filter === tab.key ? '1px solid var(--primary, #3b82f6)' : '1px solid rgba(255,255,255,0.1)',
+              background: filter === tab.key ? 'var(--primary, #3b82f6)' : 'rgba(255,255,255,0.05)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: filter === tab.key ? 'bold' : 'normal',
+            }}
+            onClick={() => setFilter(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {displayedServices.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
-          <p>No service requests to review.</p>
+          <p>No service requests found for "{filter}".</p>
         </div>
       ) : (
         <table className="admin-table">
@@ -2193,11 +2233,11 @@ function AdminServiceRequestsTab({ services, onRefresh }) {
               <th>REQUESTED BY</th>
               <th>DATE</th>
               <th>SERVICES &amp; AMOUNT</th>
-              <th>ACTION</th>
+              <th>STATUS / ACTION</th>
             </tr>
           </thead>
           <tbody>
-            {pending.map((svc, i) => {
+            {displayedServices.map((svc, i) => {
               const parsedServices = parseServices(svc.description);
               const hasCustomNote = svc.description?.includes('—') || svc.description?.includes('–');
               const customNote = hasCustomNote ? svc.description.split(/[—–]/)[1]?.trim() : '';
@@ -2214,7 +2254,7 @@ function AdminServiceRequestsTab({ services, onRefresh }) {
                         parsedServices.map(s => (
                           <div key={s} className="admin-service-line">
                             <span className="admin-service-name">🔧 {s}</span>
-                            <span className="admin-service-price">₹{SERVICE_PRICES[s].toLocaleString('en-IN')}</span>
+                            <span className="admin-service-price">₹{SERVICE_PRICES[s]?.toLocaleString('en-IN') || 0}</span>
                           </div>
                         ))
                       ) : (
@@ -2232,10 +2272,27 @@ function AdminServiceRequestsTab({ services, onRefresh }) {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn-sm green" onClick={() => updateStatus(svc.id, 'accepted', estTotal)}>✅ Accept</button>
-                      <button className="btn-sm red" onClick={() => updateStatus(svc.id, 'rejected')}>❌ Reject</button>
-                    </div>
+                    {svc.status === 'pending' ? (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn-sm green" onClick={() => updateStatus(svc.id, 'accepted', estTotal)}>✅ Accept</button>
+                        <button className="btn-sm red" onClick={() => updateStatus(svc.id, 'rejected')}>❌ Reject</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <span className={`status-badge ${svc.status}`}>
+                          {svc.status === 'accepted' ? '✅ Accepted' : svc.status === 'in_progress' ? '🔧 In Progress' : svc.status === 'completed' ? '⚙️ Completed' : svc.status}
+                        </span>
+                        {setActiveTab && (
+                          <button
+                            className="btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '3px 8px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', cursor: 'pointer' }}
+                            onClick={() => setActiveTab('service-update')}
+                          >
+                            Update Progress 🔄
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
