@@ -121,7 +121,18 @@ function formatBookingDate(dateStr) {
 // ── Main App ─────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(getSavedUser);
-  const [page, setPage] = useState('home');
+
+  // Always start at home page, regardless of URL path
+  const getInitialPage = () => {
+    const path = window.location.pathname;
+    if (path === '/login') return 'login';
+    if (path === '/register') return 'register';
+    if (path === '/admin-login') return 'admin-login';
+    if (path === '/about') return 'about';
+    return 'home'; // Default: always home
+  };
+
+  const [page, setPage] = useState(getInitialPage);
   const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
@@ -153,6 +164,7 @@ export default function App() {
   const handleLogin = (token, userData) => {
     saveAuth(token, userData);
     setUser(userData);
+    window.history.pushState({}, '', '/');
     setPage(userData.is_staff ? 'admin' : 'dashboard');
   };
 
@@ -160,6 +172,7 @@ export default function App() {
     try { await authAPI.logout(); } catch {}
     clearAuth();
     setUser(null);
+    window.history.pushState({}, '', '/');
     setPage('home');
   };
 
